@@ -1,0 +1,547 @@
+/* === Equipment Panel === */
+.equip-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  z-index: 999990;
+  width: 700px;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  background: linear-gradient(180deg, #1a1c27 0%, #13141f 100%);
+  border: 2px solid #4a3a1a;
+  border-radius: 10px;
+  color: #fff;
+  font-family: Verdana, sans-serif;
+  font-size: 12px;
+  user-select: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,204,0,0.1);
+}
+.equip-panel.collapsed .equip-body { display: none; }
+.equip-panel.dragging { opacity: 0.92; }
+
+/* === Header === */
+.equip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #3a2a0a, #1a1c27);
+  border-radius: 8px 8px 0 0;
+  cursor: move;
+  border-bottom: 1px solid #5a4a2a;
+}
+.equip-title {
+  font-weight: bold;
+  color: #ffcc00;
+  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.equip-title .equip-loadout-current { color: #fff8b0; }
+.equip-controls { display: flex; gap: 6px; }
+.equip-btn {
+  background: #2a2c3d;
+  border: 1px solid #4a4c5d;
+  color: #ccc;
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+}
+.equip-btn:hover { background: #3a3c4d; color: #fff; border-color: #ffcc00; }
+
+/* === Body === */
+.equip-body { padding: 12px; }
+
+/* 内部: 左侧 paper-doll + 右侧 装备列表 */
+.equip-body-inner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+/* === Paper Doll ===
+ * 背景图: img/eq.jpg (686x760, 宽高比 ~0.903)
+ * 容器: 360 x 400, 保持图片比例, background-size: contain
+ * 布局:
+ *   L 列 11 行 (row 0..10), row 4-5 留空显示角色立绘
+ *   R 列 5 行 (row 0..4), 顶部对齐
+ *   B 底部 3 格横排: 主手 副手 远程
+ */
+.equip-paper-doll {
+  position: relative;
+  flex: 0 0 auto;
+  width: 360px;
+  height: 400px;
+  margin: 0;
+  background: #0a0b15 url('img/eq.jpg') no-repeat center top;
+  background-size: contain;
+  border: 1px solid #2a2c3d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* === Stat Box (4 框, 绝对定位在 paper-doll 内部, 2x2 网格) === */
+.equip-stat-box {
+  position: absolute;
+  width: 114px;
+  background: rgba(15, 18, 28, 0.88);
+  border: 1px solid #3a3c4d;
+  border-radius: 4px;
+  padding: 3px 5px 2px;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) inset;
+  /* 高度由内容撑开 */
+  height: auto;
+}
+/* 左列 (基础/防御) */
+.equip-stat-box.stat-box-basic    { top: 70px; left: 60px; }
+.equip-stat-box.stat-box-defense  { top: 210px; left: 60px; }
+/* 右列 (物理/法术) */
+.equip-stat-box.stat-box-physical { top: 70px; left: 185px; }
+.equip-stat-box.stat-box-spell    { top: 210px; left: 185px; }
+
+.equip-stat-box .stat-box-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd100;
+  border-bottom: 1px solid #3a3c4d;
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  line-height: 18px;
+  height: 18px;
+}
+.equip-stat-box .stat-box-rows {
+  display: flex;
+  flex-direction: column;
+}
+.equip-stat-box .stat-box-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  line-height: 18px;
+  height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.equip-stat-box .stat-box-row .stat-name,
+.equip-stat-box .stat-box-row .stat-val {
+  flex: 0 0 auto;
+}
+.equip-stat-box .stat-box-row .stat-name {
+  color: #fff;
+  margin-right: 2px;
+}
+.equip-stat-box .stat-box-row .stat-val {
+  color: #1eff00;
+  margin-right: 4px;
+}
+
+/* === Equipped List (右侧 17 行, 参照 eq.png 截图) === */
+.equip-equipped-list {
+  flex: 1 1 auto;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(20,22,34,0.85), rgba(10,11,18,0.65));
+  border: 1px solid #2a2c3d;
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+.equip-equipped-row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 28px;
+  border-bottom: 1px solid rgba(60, 60, 80, 0.18);
+  cursor: default;
+  transition: background 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  gap:10px;
+}
+.equip-equipped-row:last-child { border-bottom: none; }
+.equip-equipped-row:hover:not(.empty) { background: rgba(60, 60, 90, 0.45); }
+.equip-equipped-row .eq-slot-name {
+  color: var(--q-color, #1eff00);
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.equip-equipped-row .eq-item-level {
+  text-align: right;
+  color: #ffd100;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.equip-equipped-row .eq-item-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--q-color, #fff);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.equip-equipped-row.empty .eq-slot-name { color: #5a8a5a; opacity: 0.6; }
+.equip-equipped-row.empty .eq-item-name { color: #555; font-style: italic; }
+
+/* 槽位 flash 高亮 (列表点击同步) */
+.equip-slot.flash {
+  animation: equip-slot-flash 0.8s ease-out;
+}
+@keyframes equip-slot-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(255,204,0,0.9); border-color: #ffcc00; }
+  50%  { box-shadow: 0 0 12px 4px rgba(255,204,0,0.7); border-color: #ffe066; }
+  100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); border-color: rgba(40,36,22,0.6); }
+}
+
+/* 槽位: 绝对定位, 根据 .side-L / .side-R / .side-B 与 .row-N 计算位置 */
+.equip-slot {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  background: transparent;
+  border: 1px solid rgba(80, 70, 40, 0.55);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.1s;
+}
+.equip-slot:hover {
+  border-color: #ffcc00;
+  box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+  transform: scale(1.06);
+  z-index: 2;
+}
+.equip-slot.has-item { border-color: rgba(40, 36, 22, 0.6); }
+
+/* L 列 - 左侧 6 行槽位 (top 间距 37px) */
+.equip-slot.side-L { left: 8px; }
+.equip-slot.side-L.row-0  { top: 9px; }
+.equip-slot.side-L.row-1  { top: 54px; }
+.equip-slot.side-L.row-2  { top: 98px; }
+.equip-slot.side-L.row-3  { top: 143px; }
+.equip-slot.side-L.row-4  { top: 188px; }
+.equip-slot.side-L.row-5  { top: 320px; }
+
+/* R 列 - 右侧 8 行槽位 (顶部对齐) */
+.equip-slot.side-R { right: 8px; }
+.equip-slot.side-R.row-0 { top: 9px; }
+.equip-slot.side-R.row-1 { top: 54px; }
+.equip-slot.side-R.row-2 { top: 98px; }
+.equip-slot.side-R.row-3 { top: 143px; }
+.equip-slot.side-R.row-4 { top: 188px; }
+.equip-slot.side-R.row-5 { top: 232px; }
+.equip-slot.side-R.row-6 { top: 275px; }
+.equip-slot.side-R.row-7 { top: 320px; }
+
+/* B 底行 - 武器横排 (主手 副手 远程), 位于 eq.jpg 底部武器栏 */
+.equip-slot.side-B {
+  top: 345px;
+  width: 40px;
+  height: 40px;
+}
+.equip-slot.side-B.mainhand { left: 113px; }
+.equip-slot.side-B.offhand  { left: 161px; }
+.equip-slot.side-B.ranged   { right: 111px; }
+
+/* === Slot Cell === */
+.equip-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  pointer-events: none;
+}
+.equip-slot .slot-empty {
+  font-size: 9px;
+  color: #c0a060;
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  opacity: 0.55;
+}
+.equip-slot .slot-quality-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+}
+.equip-slot.has-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow: inset 0 0 8px var(--slot-glow, transparent);
+}
+.equip-slot .equip-context-btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 10px;
+  line-height: 12px;
+  text-align: center;
+  border-radius: 2px;
+  display: none;
+  cursor: pointer;
+}
+.equip-slot:hover .equip-context-btn { display: block; }
+
+/* === Loadouts === */
+/* === 左侧列 (paper-doll + 配装列表) === */
+.equip-left {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.equip-loadouts {
+  width: 360px;
+}
+
+.equip-loadout-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  max-height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin-bottom: 4px;
+  align-content: start;
+}
+.equip-section-label{
+    font-size: 14px;
+}
+.equip-loadout-list .equip-loadout-add {
+  padding: 3px 4px;
+  background: rgba(60, 40, 100, 0.7);
+  border: 1px solid #6a4a9d;
+  color: #c8a8ff;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+.equip-loadout-list .equip-loadout-add:hover {
+  background: rgba(80, 50, 130, 0.85);
+  border-color: #a87ad9;
+  color: #fff;
+}
+.equip-loadout-row {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 3px 4px;
+  background: rgba(35, 38, 55, 0.6);
+  border: 1px solid #30364d;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  min-width: 0;
+  overflow: hidden;
+}
+.equip-loadout-row:hover {
+  background: rgba(60, 50, 30, 0.7);
+  border-color: #ffcc00;
+}
+.equip-loadout-row.active {
+  background: rgba(70, 55, 20, 0.85);
+  border-color: #ffd100;
+}
+.equip-loadout-name {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 1px 2px;
+  margin: 0;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.equip-loadout-row:hover .equip-loadout-name { background: rgba(255, 255, 255, 0.04); }
+.equip-loadout-name:focus { background: rgba(255, 204, 0, 0.18); cursor: text; outline: 1px solid #ffcc00; }
+.equip-loadout-name.active { color: #ffd100; font-weight: bold; }
+.equip-loadout-btn {
+  flex: 0 0 auto;
+  background: #2a2c3d;
+  border: 1px solid #4a4c5d;
+  color: #ccc;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.equip-loadout-count {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: #6f7a90;
+  background: #1a1c27;
+  border: 1px solid #30364d;
+  border-radius: 3px;
+  padding: 0 4px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+}
+.equip-loadout-row.active .equip-loadout-count { color: #ffd100; border-color: #ffd100; }
+.equip-loadout-empty {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #6f7a90;
+  text-align: center;
+  padding: 12px 0 8px;
+  font-style: italic;
+}
+
+/* === Right-click Context Menu === */
+.equip-ctx-menu {
+  position: fixed;
+  z-index: 999999;
+  background: #1a1c27;
+  border: 1px solid #5a4a2a;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+  padding: 4px 0;
+  min-width: 160px;
+  font-family: Verdana, sans-serif;
+  font-size: 12px;
+  color: #fff;
+}
+.equip-ctx-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.equip-ctx-item:hover { background: #2a2c3d; color: #ffcc00; }
+.equip-ctx-item .ctx-slot-icon {
+  width: 14px;
+  height: 14px;
+  background: #2a2c3d;
+  border-radius: 2px;
+  display: inline-block;
+}
+.equip-ctx-sep { height: 1px; background: #3b3c4c; margin: 4px 0; }
+.equip-ctx-item.equip-ctx-disabled { color: #5a5c6d; cursor: default; }
+.equip-ctx-item.equip-ctx-disabled:hover { background: transparent; color: #5a5c6d; }
+.equip-ctx-item.equip-ctx-title { color: #ffcc00; font-weight: bold; cursor: default; }
+.equip-ctx-item.equip-ctx-title:hover { background: transparent; color: #ffcc00; }
+
+/* === Tooltip (完全模仿主站 .wow-tooltip 样式) ===
+ * tw-equip 是独立部署, 不依赖主站 assets/index-*.css, 在此本地定义.
+ * 仅保留 equip 特有元素 (来源行 / 角标).
+ */
+.equip-tooltip,
+.equip-compare-tip {
+  position: fixed;
+  z-index: 999997;
+  max-width: 320px;
+  background-color: #07090ff2;
+  border: 1px solid #777;
+  border-radius: 4px;
+  padding: 12px ;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  font-family: Verdana, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #fff;
+  text-align: left;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  /* 跟手 transition (对比 tooltip 用) */
+  transition: left 0.04s linear, top 0.04s linear;
+}
+.equip-compare-tip { z-index: 999999; }
+.equip-tooltip table,
+.equip-compare-tip table { border-collapse: collapse; width: 100%; }
+.equip-tooltip b,
+.equip-compare-tip b { font-size: 14px; display: inline-block; margin-bottom: 4px; }
+
+/* === Tooltip Source Line (来自 <专业>/副本 <副本名> <boss>) === */
+.equip-tooltip-source {
+  color: #a8ffa8;
+  font-size: 12px;
+}
+
+/* === Compare Tooltip 角标 "已装备 XX" === */
+.equip-compare-label {
+  position: absolute;
+  top: 30px;
+  right: 0px;
+  background: linear-gradient(180deg, #ffcc00, #b88800);
+  color: #000;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* === Context Menu Title (title 行的品质色左边框) === */
+.equip-ctx-item.equip-ctx-title {
+  border-left: 3px solid var(--q-color, transparent);
+  padding-left: 11px;
+}
+
+/* === Toast === */
+.equip-toast {
+  position: fixed;
+  z-index: 999999;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #2d4a2d, #1a3520);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-family: Verdana, sans-serif;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  border: 1px solid #4a7a4a;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.equip-toast.show { opacity: 1; }
+.equip-toast.warn {
+  background: linear-gradient(180deg, #6a3a1a, #4a2a10);
+  border-color: #aa6633;
+}
