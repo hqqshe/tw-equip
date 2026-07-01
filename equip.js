@@ -624,7 +624,9 @@
       '#s12#': ['feet'],
       '#s13#': ['finger1', 'finger2'],
       '#s14#': ['trinket1', 'trinket2'],
-      '#s15#': ['offhand']
+      '#s15#': ['offhand'],
+      // #s16# 远程/Relic 槽 (神像/图腾/圣契/战旗/旧版遗物, 经典 WoW 装在远程栏)
+      '#s16#': ['ranged']
     };
     for (const tag of tags) {
       if (sMap[tag]) return { slots: sMap[tag], is2h: false, tags };
@@ -646,6 +648,8 @@
     '单手': { slots: ['mainhand', 'offhand'], is2h: false },
     '双手': { slots: ['mainhand'], is2h: true },
     '远程': { slots: ['ranged'],   is2h: true },
+    // 圣物 = Relic (神像/图腾/圣契/战旗/遗物, 装在远程栏, 非 2H)
+    '圣物': { slots: ['ranged'],   is2h: false },
     '头部': { slots: ['head'],     is2h: false },
     '颈部': { slots: ['neck'],     is2h: false },
     '肩部': { slots: ['shoulder'], is2h: false },
